@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -17,9 +18,11 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $request->remember)) {
             $request->session()->regenerate();
+            Log::info('Utilisateur connecté avec succès', ['email' => $request->email]);
             return redirect()->intended('/');
         }
 
+        Log::warning('Tentative de connexion échouée', ['email' => $request->email]);
         return back()->withErrors([
             'email' => 'Les identifiants fournis ne correspondent pas à nos enregistrements.',
         ])->onlyInput('email');
@@ -27,7 +30,9 @@ class AuthController extends Controller
 
     public function logout()
         {
+            $email = Auth::user()->email;
             Auth::logout();
+            Log::info('Utilisateur déconnecté', ['email' => $email]);
             return redirect('/');
         }
     
@@ -45,6 +50,7 @@ class AuthController extends Controller
         ]);
 
         Auth::login($user);
+        Log::info('Nouvel utilisateur inscrit', ['email' => $user->email, 'name' => $user->name]);
 
         return redirect('/');
     }    

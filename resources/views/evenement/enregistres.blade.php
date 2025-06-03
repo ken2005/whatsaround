@@ -2,7 +2,7 @@
 @section('content')
     <h1 style="text-align: center;" class="mb-4">Mes enregistrements</h1>
     @if (count($evenements) == 0)
-    <p class="text-center no-following mb-4" style="text-align: center; margin-top:2em">Vous n'avez pas encore enregistré d'événement.</p>
+    <p class="text-center no-following mb-4">Vous n'avez pas encore enregistré d'événement.</p>
     
     @endif
       <div class="events-container">

@@ -23,6 +23,6 @@
         @endforeach
     </div>
     @else
-    <p class="text-center no-following mb-4" style="text-align: center; margin-top:2em">Vous ne suivez aucun compte pour le moment.</p>
+    <p class="text-center no-following mb-4">Vous ne suivez aucun compte pour le moment.</p>
     @endif
 @endsection
