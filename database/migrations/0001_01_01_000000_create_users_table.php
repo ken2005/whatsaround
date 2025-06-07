@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->foreignId(column: 'badge_id')->default(1);
             $table->boolean('est_prive')->default(0);
             $table->rememberToken();
             $table->timestamps();

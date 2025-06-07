@@ -6,15 +6,7 @@
       <div class="profile-details">
               <div class="profile-info">
                   <img src="../images/profils/{{$user->image}}" alt="Photo de profil" class="profile-picture">
-                  <h2>{{$user->name}}
-                      @if ($user->badge_id == 2)
-                      <i class="fa-solid fa-user-check"></i>
-                      @elseif ($user->badge_id == 3)
-                      <i class="fa-regular fa-circle-check"></i>
-                      @elseif ($user->badge_id == 4)
-                      <i class="fa-solid fa-check-to-slot"></i>
-                      @endif
-                  </h2>
+                  <h2>{{$user->name}}</h2>
                   <h3>{{$nbSuivi}} 
                       @if ($nbSuivi == 1)
                       
@@ -64,7 +56,7 @@
       @if ($user->evenements->isEmpty())
       <p>{{$user->name}} n'a pas encore crée d'évenements</p>
       @endif
-@foreach ($user->evenements as $evenement)
+      @foreach ($user->evenements as $evenement)
       <a class="lien-discret" href="{{ route('evenement', ['id' => $evenement->id]) }}">
       <div class="event-card">
           <img src="../images/evenements/{{$evenement->image}}" alt="Événement" width="300" height="150">
