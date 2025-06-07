@@ -30,9 +30,6 @@ class EvenementController extends Controller
         if (!$evenement) {
             abort(404);
         }
-        elseif ($evenement->user_id != Auth::id()) {
-            abort(403);
-        }
 
         return view('evenement.participants', ['evenement' => $evenement]);
     }
@@ -273,122 +270,122 @@ class EvenementController extends Controller
         return redirect()->route('connexion');
     }
     public function seDesinscrire(Request $request, $id){
-            if(Auth::check()){
-                DB::table('s_inscrire')
-                    ->where('user_id', Auth::id())
-                    ->where('evenement_id', $id)
-                    ->delete();
-                return redirect()->back()->with('success', 'Désinscription réussie de l\'événement');
-            }
-            return redirect()->route('connexion');
+        if(Auth::check()){
+            DB::table('s_inscrire')
+                ->where('user_id', Auth::id())
+                ->where('evenement_id', $id)
+                ->delete();
+            return redirect()->back()->with('success', 'Désinscription réussie de l\'événement');
         }
+        return redirect()->route('connexion');
+    }
+    
+    public function rechercher(Request $request){
+        Carbon::setLocale('fr');
+        $search = $request->input('search');
+        $searchTerms = explode(' ', $search);
         
-        public function rechercher(Request $request){
-            Carbon::setLocale('fr');
-            $search = $request->input('search');
-            $searchTerms = explode(' ', $search);
-            
-            // Recherche des mois en français et conversion en anglais
-            $moisFrancais = Dictionnaires::getMoisFrancais();
-            $searchMois = $searchTerms;
-            foreach ($searchTerms as $key => $term) {
-                foreach ($moisFrancais as $mois) {
-                    if (stripos($mois, $term) !== false) {
-                        $searchMois[$key] = Dictionnaires::getMois($mois);
-                        break;
-                    }
+        // Recherche des mois en français et conversion en anglais
+        $moisFrancais = Dictionnaires::getMoisFrancais();
+        $searchMois = $searchTerms;
+        foreach ($searchTerms as $key => $term) {
+            foreach ($moisFrancais as $mois) {
+                if (stripos($mois, $term) !== false) {
+                    $searchMois[$key] = Dictionnaires::getMois($mois);
+                    break;
                 }
             }
-    
-            // Recherche des jours en français et conversion en anglais
-            $joursFrancais = Dictionnaires::getJoursFrancais();
-            $searchJour = $searchTerms;
-            foreach ($searchTerms as $key => $term) {
-                foreach ($joursFrancais as $jour) {
-                    if (stripos($jour, $term) !== false) {
-                        $searchJour[$key] = Dictionnaires::getJours($jour);
-                        break;
-                    }
+        }
+
+        // Recherche des jours en français et conversion en anglais
+        $joursFrancais = Dictionnaires::getJoursFrancais();
+        $searchJour = $searchTerms;
+        foreach ($searchTerms as $key => $term) {
+            foreach ($joursFrancais as $jour) {
+                if (stripos($jour, $term) !== false) {
+                    $searchJour[$key] = Dictionnaires::getJours($jour);
+                    break;
                 }
             }
-    
-            $evenements = DB::table('evenement')
-                ->select('evenement.*', 'categorie.libelle as categorie_libelle')
-                ->distinct()
-                ->leftJoin('etre', 'evenement.id', '=', 'etre.evenement_id')
-                ->leftJoin('categorie', 'etre.categorie_id', '=', 'categorie.id')
-                ->where(function($query) {
-                    $query->where('diffusion_id', 1);
-                    if (Auth::check()) {
-                        $query->orWhere(function($q) {
-                            $q->where('diffusion_id', 2)
+        }
+
+        $evenements = DB::table('evenement')
+            ->select('evenement.*', 'categorie.libelle as categorie_libelle')
+            ->distinct()
+            ->leftJoin('etre', 'evenement.id', '=', 'etre.evenement_id')
+            ->leftJoin('categorie', 'etre.categorie_id', '=', 'categorie.id')
+            ->where(function($query) {
+                $query->where('diffusion_id', 1);
+                if (Auth::check()) {
+                    $query->orWhere(function($q) {
+                        $q->where('diffusion_id', 2)
+                        ->whereExists(function($subquery) {
+                            $subquery->select(DB::raw(1))
+                                ->from('etre_invite')
+                                ->whereRaw('etre_invite.evenement_id = evenement.id')
+                                ->where('etre_invite.user_id', Auth::id());
+                        });
+                    })
+                        ->orWhere(function($q) {
+                            $q->where('diffusion_id', 3)
                             ->whereExists(function($subquery) {
                                 $subquery->select(DB::raw(1))
-                                    ->from('etre_invite')
-                                    ->whereRaw('etre_invite.evenement_id = evenement.id')
-                                    ->where('etre_invite.user_id', Auth::id());
+                                    ->from('suivre')
+                                    ->whereRaw('suivre.followed_id = evenement.user_id')
+                                    ->where('suivre.follower_id', Auth::id());
                             });
-                        })
-                            ->orWhere(function($q) {
-                                $q->where('diffusion_id', 3)
-                                ->whereExists(function($subquery) {
-                                    $subquery->select(DB::raw(1))
-                                        ->from('suivre')
-                                        ->whereRaw('suivre.followed_id = evenement.user_id')
-                                        ->where('suivre.follower_id', Auth::id());
-                                });
-                            });
-                    }
-                })
-                ->selectRaw('
-                    CASE 
-                        WHEN ' . implode(' AND ', array_fill(0, count($searchTerms), 'evenement.nom LIKE ?')) . ' THEN 5
-                        WHEN ' . implode(' AND ', array_fill(0, count($searchTerms), 'categorie.libelle LIKE ?')) . ' THEN 4
-                        WHEN ' . implode(' AND ', array_fill(0, count($searchTerms), 'evenement.description LIKE ?')) . ' THEN 3
-                        WHEN ' . implode(' AND ', array_fill(0, count($searchTerms), '(evenement.ville LIKE ? OR evenement.code_postal LIKE ? OR evenement.allee LIKE ?)')) . ' THEN 2
-                        WHEN ' . implode(' AND ', array_fill(0, count($searchTerms), 'DATE_FORMAT(evenement.date, "%d %M %Y") LIKE ?')) . ' THEN 1
-                        WHEN ' . implode(' AND ', array_fill(0, count($searchTerms), 'DATE_FORMAT(evenement.date, "%W") LIKE ?')) . ' THEN 1
-                        ELSE 0
-                    END as pertinence', 
-                    array_merge(
-                        array_map(function($term) { return "%{$term}%"; }, $searchTerms),
-                        array_map(function($term) { return "%{$term}%"; }, $searchTerms),
-                        array_map(function($term) { return "%{$term}%"; }, $searchTerms),
-                        array_map(function($term) { return "%{$term}%"; }, $searchTerms),
-                        array_map(function($term) { return "%{$term}%"; }, $searchTerms),
-                        array_map(function($term) { return "%{$term}%"; }, $searchTerms),
-                        array_map(function($term) { return "%{$term}%"; }, $searchMois),
-                        array_map(function($term) { return "%{$term}%"; }, $searchJour)
-                    )
-                )
-                ->where(function($query) use ($searchTerms, $searchMois, $searchJour) {
-                    foreach ($searchTerms as $key => $term) {
-                        $query->where(function($q) use ($term, $searchMois, $searchJour, $key) {
-                            $q->where('evenement.nom', 'LIKE', "%{$term}%")
-                                ->orWhere('categorie.libelle', 'LIKE', "%{$term}%")
-                                ->orWhere('evenement.description', 'LIKE', "%{$term}%")
-                                ->orWhere('evenement.ville', 'LIKE', "%{$term}%")
-                                ->orWhere('evenement.code_postal', 'LIKE', "%{$term}%")
-                                ->orWhere('evenement.allee', 'LIKE', "%{$term}%")
-                                ->orWhere(DB::raw("DATE_FORMAT(evenement.date, '%d %M %Y')"), 'LIKE', "%{$term}%")
-                                ->orWhere(DB::raw("DATE_FORMAT(evenement.date, '%W')"), 'LIKE', "%{$searchJour[$key]}%");
                         });
-                    }
-                })
-                ->orderBy('pertinence', 'desc')
-                ->get()
-                ->unique('id')
-                ->map(function($evenement) {
-                    $evenement->date = Carbon::parse($evenement->date)->isoFormat('D MMMM YYYY');
-                    return $evenement;
-                });
-    
-            $profils = User::where(function($query) use ($searchTerms) {
-                foreach ($searchTerms as $term) {
-                    $query->where('name', 'LIKE', "%{$term}%");
                 }
-            })->get();
-                
-            return view('evenement.recherche', ['evenements' => $evenements,'users' => $profils, 'search' => $search]);
-        }
-        }
+            })
+            ->selectRaw('
+                CASE 
+                    WHEN ' . implode(' AND ', array_fill(0, count($searchTerms), 'evenement.nom LIKE ?')) . ' THEN 5
+                    WHEN ' . implode(' AND ', array_fill(0, count($searchTerms), 'categorie.libelle LIKE ?')) . ' THEN 4
+                    WHEN ' . implode(' AND ', array_fill(0, count($searchTerms), 'evenement.description LIKE ?')) . ' THEN 3
+                    WHEN ' . implode(' AND ', array_fill(0, count($searchTerms), '(evenement.ville LIKE ? OR evenement.code_postal LIKE ? OR evenement.allee LIKE ?)')) . ' THEN 2
+                    WHEN ' . implode(' AND ', array_fill(0, count($searchTerms), 'DATE_FORMAT(evenement.date, "%d %M %Y") LIKE ?')) . ' THEN 1
+                    WHEN ' . implode(' AND ', array_fill(0, count($searchTerms), 'DATE_FORMAT(evenement.date, "%W") LIKE ?')) . ' THEN 1
+                    ELSE 0
+                END as pertinence', 
+                array_merge(
+                    array_map(function($term) { return "%{$term}%"; }, $searchTerms),
+                    array_map(function($term) { return "%{$term}%"; }, $searchTerms),
+                    array_map(function($term) { return "%{$term}%"; }, $searchTerms),
+                    array_map(function($term) { return "%{$term}%"; }, $searchTerms),
+                    array_map(function($term) { return "%{$term}%"; }, $searchTerms),
+                    array_map(function($term) { return "%{$term}%"; }, $searchTerms),
+                    array_map(function($term) { return "%{$term}%"; }, $searchMois),
+                    array_map(function($term) { return "%{$term}%"; }, $searchJour)
+                )
+            )
+            ->where(function($query) use ($searchTerms, $searchMois, $searchJour) {
+                foreach ($searchTerms as $key => $term) {
+                    $query->where(function($q) use ($term, $searchMois, $searchJour, $key) {
+                        $q->where('evenement.nom', 'LIKE', "%{$term}%")
+                            ->orWhere('categorie.libelle', 'LIKE', "%{$term}%")
+                            ->orWhere('evenement.description', 'LIKE', "%{$term}%")
+                            ->orWhere('evenement.ville', 'LIKE', "%{$term}%")
+                            ->orWhere('evenement.code_postal', 'LIKE', "%{$term}%")
+                            ->orWhere('evenement.allee', 'LIKE', "%{$term}%")
+                            ->orWhere(DB::raw("DATE_FORMAT(evenement.date, '%d %M %Y')"), 'LIKE', "%{$term}%")
+                            ->orWhere(DB::raw("DATE_FORMAT(evenement.date, '%W')"), 'LIKE', "%{$searchJour[$key]}%");
+                    });
+                }
+            })
+            ->orderBy('pertinence', 'desc')
+            ->get()
+            ->unique('id')
+            ->map(function($evenement) {
+                $evenement->date = Carbon::parse($evenement->date)->isoFormat('D MMMM YYYY');
+                return $evenement;
+            });
+
+        $profils = User::where(function($query) use ($searchTerms) {
+            foreach ($searchTerms as $term) {
+                $query->where('name', 'LIKE', "%{$term}%");
+            }
+        })->get();
+            
+        return view('evenement.recherche', ['evenements' => $evenements,'users' => $profils, 'search' => $search]);
+    }
+}
