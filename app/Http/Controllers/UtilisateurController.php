@@ -17,9 +17,14 @@ class UtilisateurController extends Controller
         if (!$user) {
             abort(404);
         }
+        if (!Auth::check() ) {
+            return redirect()->route('connexion');
+        }
         $suivi = false;
+        $demande = false;
         if (Auth::check()) {
             $suivi = DB::table('suivre')->where('follower_id', Auth::user()->id)->where('followed_id', $id)->where('validee', 1)->exists();
+            $demande = DB::table('suivre')->where('follower_id', Auth::user()->id)->where('followed_id', $id)->where('validee', 0)->exists();
             $evenements = DB::table('evenement')
                         ->leftJoin('suivre', 'evenement.user_id', '=', 'suivre.followed_id')
                         ->leftJoin('etre_invite', 'evenement.id', '=', 'etre_invite.evenement_id')
@@ -64,7 +69,7 @@ class UtilisateurController extends Controller
             });*/
         $user->evenements = $evenements;
         $nbSuivi = DB::table('suivre')->where('followed_id', $id)->where('validee', 1)->count();
-        return view('user.profil', ['user' => $user, 'suivi' => $suivi, 'nbSuivi' => $nbSuivi,]);
+        return view('user.profil', ['user' => $user, 'suivi' => $suivi, 'nbSuivi' => $nbSuivi, 'demande' => $demande]);
     }
 
     public function suivre(Request $request, $id){

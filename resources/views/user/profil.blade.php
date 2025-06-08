@@ -22,14 +22,24 @@
               <div class="profile-actions">
                   <a href="{{route('accueil')}}"><button class="back-button">Retour</button></a>
                   @if(auth()->id() !== $user->id)
-
-                        <form action="{{ route($suivi ? 'seDesabonner' : 'suivre', $user->id) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="follow-button">
-                                {{ $suivi ? 'Ne plus suivre' : 'Suivre' }}
-                            </button>
-                        </form>
+                        @if($user->est_prive == 0)
+                          <form action="{{ route($suivi ? 'seDesabonner' : 'suivre', $user->id) }}" method="POST">
+                              @csrf
+                              <button type="submit" class="follow-button">
+                                  {{ $suivi ? 'Ne plus suivre' : 'Suivre' }}
+                              </button>
+                          </form>
                         @else
+                            
+                            <form action="{{ route($demande ? 'seDesabonner' : 'suivre'
+                            , $user->id) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="{{ $demande ? 'back-button' : 'follow-button' }}">
+                                    {{ $demande ? 'Demande envoyée' : 'Demander à suivre' }}
+                                </button>
+                            </form>
+                        @endif
+                    @else
                         @if($user->est_prive == 0)
 
                           <form action="{{ route('passerPrive', $user->id) }}" method="POST">
@@ -67,7 +77,7 @@
       </div>
       </a>
       @endforeach
-</div>
+    </div>
   </span>
 
   @endsection
