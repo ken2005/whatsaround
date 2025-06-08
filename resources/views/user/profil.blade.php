@@ -22,7 +22,7 @@
               <div class="profile-actions">
                   <a href="{{route('accueil')}}"><button class="back-button">Retour</button></a>
                   @if(auth()->id() !== $user->id)
-                        @if($user->est_prive == 0)
+                        @if($user->est_prive == 0 || $suivi)
                           <form action="{{ route($suivi ? 'seDesabonner' : 'suivre', $user->id) }}" method="POST">
                               @csrf
                               <button type="submit" class="follow-button">
