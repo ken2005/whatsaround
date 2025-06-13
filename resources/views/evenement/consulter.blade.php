@@ -40,6 +40,17 @@
             <a class="lien" href="{{route('profil', ['id' => $evenement->user->id])}}">
                 {{$evenement->user->name}}
             </a>
+            @if ($editeurs->count() > 0)
+            <br>📝 Éditeurs:
+                @foreach ($editeurs as $editeur)
+                    <a class="lien" href="{{route('profil', ['id' => $editeur->id])}}">
+                        {{$editeur->name}}
+                    </a>
+                    @if(!$loop->last)
+                    ,
+                    @endif
+                @endforeach
+            @endif
             </p>
             <p>📝 Description: {{$evenement->description}}</p>
             <p>👥 
@@ -108,6 +119,11 @@
                 @method('DELETE')
                 <button type="submit">Supprimer l'événement</button>
             </form>
+            @endif
+            @if ($owned || $editeur)
+            <a href="{{ route('evenement.modifier', ['id' => $evenement->id]) }}">
+                <button type="submit">Éditer l'événement</button>
+            </a>
             @endif
         </div>
 

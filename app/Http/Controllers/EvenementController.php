@@ -16,11 +16,119 @@ class EvenementController extends Controller
     //
     public function creer(){
         if(Auth::check()){
-            return view('evenement.creer');
+           $suivis = DB::table('suivre')
+                ->where('follower_id', Auth::id())
+                ->pluck('followed_id');
+            $nonSuivis = User::whereNotIn('id', $suivis)
+                ->where('est_prive', 0)
+                ->where('id', '!=', Auth::id())
+                ->get();
+            // utilisateurs suivis puis non suivis
+            $users = $suivis->map(function($suivi) {
+                return User::find($suivi);
+            })->filter()->merge($nonSuivis);
+            return view('evenement.creer', ['users' => $users]);
         }
         else{
             return redirect()->route('connexion');
         }
+    }
+
+    public function modifier($id){
+        $evenement = Evenement::find($id);
+        if (!$evenement || $evenement->user_id != Auth::id() && !DB::table('editer')->where('evenement_id', $id)->where('user_id', Auth::id())->exists()) {
+            abort(403);
+        }
+
+        $editeurs = DB::table('editer')
+            ->join('users', 'editer.user_id', '=', 'users.id')
+            ->where('editer.evenement_id', $id)
+            ->select('users.name', 'users.id')
+            ->get();
+
+        $suivis = DB::table('suivre')
+            ->where('follower_id', Auth::id())
+            ->pluck('followed_id');
+
+        $nonSuivis = User::whereNotIn('id', $suivis)
+            ->where('est_prive', 0)
+            ->where('id', '!=', Auth::id())
+            ->whereNotIn('id', $editeurs->pluck('id'))
+            ->get();
+        // utilisateurs suivis puis non suivis
+        $users = $suivis->map(function($suivi) {
+            return User::find($suivi);
+        })->filter()->merge($nonSuivis);
+
+        // Récupération des catégories associées à l'événement
+        $evenementCategories = DB::table('etre')
+            ->join('categorie', 'etre.categorie_id', '=', 'categorie.id')
+            ->where('evenement_id', $id)
+            ->get();
+
+        
+
+        return view('evenement.modifier', ['evenement' => $evenement, 'users' => $users, 'editeurs' => $editeurs, 'evenementCategories' => $evenementCategories]);
+    }
+
+    public function doModifier(EvenementRequest $request, $id)
+    {
+        $evenement = Evenement::find($id);
+        if (!$evenement || $evenement->user_id != Auth::id() && !DB::table('editer')->where('evenement_id', $id)->where('user_id', Auth::id())->exists()) {
+            abort(403);
+        }
+
+        $evenement->nom = $request->nom;
+        $evenement->num_rue = $request->num_rue;
+        $evenement->allee = $request->allee;
+        $evenement->ville = $request->ville;
+        $evenement->code_postal = $request->code_postal;
+        $evenement->pays = $request->pays;
+        $evenement->date = $request->date;
+        $evenement->heure = $request->heure;
+        $evenement->description = $request->description;
+        $evenement->diffusion_id = $request->diffusion;
+        $evenement->annonciateur = $request->has('annonciateur');
+        $evenement->max_participants = $request->max_participants;
+
+        if ($request->hasFile('image') && $request->file('image')->isValid()) {
+            if ($evenement->image) {
+                // Supprimer l'ancienne image
+                if ($evenement->image != "default-event.jpg"){
+
+                    unlink(public_path('images\\evenements\\' . $evenement->image));
+                }
+            }
+            // Enregistrer la nouvelle image
+            $image = $request->file('image');
+            $imageName = date('YmdHi') . '_' . $image->getClientOriginalName();
+            $image->move(public_path('images/evenements'), $imageName);
+            $evenement->image =  $imageName;
+        }
+
+        // Mettre à jour les catégories
+        DB::table('etre')->where('evenement_id', $id)->delete();
+        foreach ($request->categorie as $categorie) {
+            DB::table('etre')->insert([
+                'evenement_id' => $id,
+                'categorie_id' => $categorie
+            ]);
+        }
+
+        // Mettre à jour les éditeurs
+        DB::table('editer')->where('evenement_id', $id)->delete();
+        if ($request->has('editeur')) {
+            foreach ($request->editeur as $editeurId) {
+                DB::table('editer')->insert([
+                    'user_id' => $editeurId,
+                    'evenement_id' => $id
+                ]);
+            }
+        }
+
+        $evenement->save();
+
+        return redirect()->route('evenement', $id)->with('success', 'Événement modifié avec succès');
     }
 
     public function participants($id)
@@ -134,6 +242,23 @@ class EvenementController extends Controller
                      'categorie_id' => $categorie
                  ]);
              }
+            // Si l'utilisateur a sélectionné des éditeurs, on les associe à l'événement
+            if ($request->has('editeur')) {
+                foreach ($request->editeur as $editeurId) {
+                    DB::table('editer')->insert([
+                        'user_id' => $editeurId,
+                        'evenement_id' => $evenement->id
+                    ]);
+                }
+
+                //inviter les éditeurs à l'événement
+                foreach ($request->editeur as $editeurId) {
+                    DB::table('etre_invite')->insert([
+                        'user_id' => $editeurId,
+                        'evenement_id' => $evenement->id
+                    ]);
+                }
+            }
             //$evenement->categories()->attach($request->categorie);
     
             return redirect()->route('accueil')->with('success', 'Événement créé avec succès');
@@ -169,7 +294,13 @@ class EvenementController extends Controller
         $inscrit = DB::table('s_inscrire')->where('evenement_id', $id)->where('user_id', Auth::id())->exists();
         $participantsSuivis = DB::table('s_inscrire')->join('users', 's_inscrire.user_id', '=', 'users.id')->join('suivre', 's_inscrire.user_id', '=', 'suivre.followed_id')->where('suivre.follower_id', '=', Auth::id())->where('s_inscrire.evenement_id', '=', $id)->select('users.name')->get();
         $nbParticipants = DB::table('s_inscrire')->where('evenement_id', $id)->count();
-        return view('evenement.consulter', ['evenement' => $evenement, 'owned' => $owned, 'passed' => $passed, 'enregistre' => $enregistre, 'inscrit' => $inscrit, 'date' => $date, 'participantsSuivis' => $participantsSuivis, 'nbParticipants' => $nbParticipants]);
+        $editeurs = DB::table('editer')
+            ->join('users', 'editer.user_id', '=', 'users.id')
+            ->where('editer.evenement_id', $id)
+            ->select('users.name', 'users.id')
+            ->get();
+        $editeur = $editeurs->contains('id', Auth::id());
+        return view('evenement.consulter', ['evenement' => $evenement, 'owned' => $owned, 'passed' => $passed, 'enregistre' => $enregistre, 'inscrit' => $inscrit, 'date' => $date, 'participantsSuivis' => $participantsSuivis, 'nbParticipants' => $nbParticipants, 'editeurs' => $editeurs, 'editeur' => $editeur]);
     }
 
     public function enregistres()
@@ -217,6 +348,15 @@ class EvenementController extends Controller
                     $evenement->date = Carbon::parse($evenement->date)->isoFormat('D MMMM YYYY');
                     return $evenement;
                 });
+            $evenements = $evenements->merge(DB::table('editer')
+                ->join('evenement', 'editer.evenement_id', '=', 'evenement.id')
+                ->where('editer.user_id', '=', Auth::id())
+                ->select('evenement.*')
+                ->get()
+                ->map(function($evenement) {
+                    $evenement->date = Carbon::parse($evenement->date)->isoFormat('D MMMM YYYY');
+                    return $evenement;
+                }));
             return view('evenement.crees', ['evenements' => $evenements]);
         }
         return redirect()->route('connexion');

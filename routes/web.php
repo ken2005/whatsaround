@@ -35,7 +35,8 @@ Route::get('/evenements/crees', [EvenementController::class, 'crees'])->name('ev
 Route::get('/evenement/{id}/inviter', [EvenementController::class, 'inviter'])->name('evenement.inviter');
 Route::post('/evenement/{id}/inviter', [EvenementController::class, 'doInviter'])->name('evenement.doInviter');
 Route::get('/evenement/{id}/participants', [EvenementController::class, 'participants'])->name('evenement.participants');
-
+Route::get('/evenement/{id}/modifier', [EvenementController::class, 'modifier'])->name('evenement.modifier');
+Route::post('/evenement/{id}/modifier', [EvenementController::class, 'doModifier'])->name('evenement.doModifier');
 
 Route::get('/connexion', function () {
     return view('auth.login');

@@ -84,11 +84,24 @@ class HomeController extends Controller
                         $evenement->date = Carbon::parse($evenement->date)->isoFormat('D MMMM YYYY');
                         return $evenement;
                     });
-            
-        }
-        
+                    
+                    
+                }
+        $evenementsOld = DB::table('evenement')
+            ->where('date', '<', Carbon::now())
+            ->where('diffusion_id', '=', 1)
+            ->orderBy('date', 'asc')
+            ->get()
+            ->map(function($evenement) {
+                $evenement->date = Carbon::parse($evenement->date)->isoFormat('D MMMM YYYY');
+                return $evenement;
+            });
+                
         return view('welcome', [
-            'evenements' => $evenements, 'evenementsAbonnements' => $evenementsAbonnements, 'suivis' => $suivis
+            'evenements' => $evenements,
+            'evenementsAbonnements' => $evenementsAbonnements,
+            'suivis' => $suivis,
+            'evenementsOld' => $evenementsOld
         ]);
     }
 }

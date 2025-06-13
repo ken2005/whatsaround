@@ -16,29 +16,62 @@
         </a>
       </div>
 
-      <div class="events-container">
-          @foreach ($evenementsAbonnements as $evenement)
-          <a class="lien-discret" href="{{ route('evenement', ['id' => $evenement->id]) }}">
-          <div class="event-card">
-              <img src="./images/evenements/{{$evenement->image}}" alt="Événement" width="300" height="150">
-              <h3>{{$evenement->nom}}</h3>
-              <p>📍 {{$evenement->num_rue}} {{$evenement->allee}}, {{$evenement->ville}}</p>
-              <p>📅 {{$evenement->date}}</p>
-              <p>🕒 {{$evenement->heure}}</p>
+      
+        @if (array_count_values($evenementsAbonnements))
+        <h2 class="text-center">Événements d'abonnements à venir</h2>
+        <br>
+        <div class="events-container">
+            @foreach ($evenementsAbonnements as $evenement)
+            <a class="lien-discret" href="{{ route('evenement', ['id' => $evenement->id]) }}">
+                <div class="event-card">
+                    <img src="./images/evenements/{{$evenement->image}}" alt="Événement" width="300" height="150">
+                    <h3>{{$evenement->nom}}</h3>
+                    <p>📍 {{$evenement->num_rue}} {{$evenement->allee}}, {{$evenement->ville}}</p>
+                    <p>📅 {{$evenement->date}}</p>
+                    <p>🕒 {{$evenement->heure}}</p>
+                </div>
+            </a>
+            @endforeach
+            </div>
+            <br>
+        @endif
+        @if ($evenements->count() > 0)
+        <h2 class="text-center">Événements à venir</h2>
+        <br>
+        <div class="events-container">
+
+            @foreach ($evenements as $evenement)
+            <a class="lien-discret" href="{{ route('evenement', ['id' => $evenement->id]) }}">
+            <div class="event-card">
+                <img src="./images/evenements/{{$evenement->image}}" alt="Événement" width="300" height="150">
+                <h3>{{$evenement->nom}}</h3>
+                <p>📍 {{$evenement->num_rue}} {{$evenement->allee}}, {{$evenement->ville}}</p>
+                <p>📅 {{$evenement->date}}</p>
+                <p>🕒 {{$evenement->heure}}</p>
+            </div>
+            
+            </a>
+            @endforeach
+        </div>
+            <br>
+        @endif
+          @if ($evenementsOld->count() > 0)
+          <h2 class="text-center">Événements passés</h2>
+          <br>
+          <div class="events-container">
+
+              @foreach ($evenementsOld as $evenement)
+              <a class="lien-discret" href="{{ route('evenement', ['id' => $evenement->id]) }}">
+              <div class="event-card">
+                  <img src="./images/evenements/{{$evenement->image}}" alt="Événement" width="300" height="150">
+                  <h3>{{$evenement->nom}}</h3>
+                  <p>📍 {{$evenement->num_rue}} {{$evenement->allee}}, {{$evenement->ville}}</p>
+                  <p>📅 {{$evenement->date}}</p>
+                  <p>🕒 {{$evenement->heure}}</p>
+              </div>
+              </a>
+              @endforeach
           </div>
-          </a>
-          @endforeach
-          @foreach ($evenements as $evenement)
-          <a class="lien-discret" href="{{ route('evenement', ['id' => $evenement->id]) }}">
-          <div class="event-card">
-              <img src="./images/evenements/{{$evenement->image}}" alt="Événement" width="300" height="150">
-              <h3>{{$evenement->nom}}</h3>
-              <p>📍 {{$evenement->num_rue}} {{$evenement->allee}}, {{$evenement->ville}}</p>
-              <p>📅 {{$evenement->date}}</p>
-              <p>🕒 {{$evenement->heure}}</p>
-          </div>
-          
-          </a>
-          @endforeach
+          @endif
       </div>
  @endsection

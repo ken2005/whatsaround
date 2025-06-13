@@ -56,11 +56,13 @@ class DatabaseSeeder extends Seeder
             ['libelle' => 'Fête'],
         ]);
 
+        /*
         DB::table('badge')->insert([
             ['libelle' => 'Utilisateur'],
             ['libelle' => 'Annonciateur Vérifié'],
             ['libelle' => 'Profil Vérifié'],
             ['libelle' => 'Professionnel Vérifié'],
         ]);
+        */
     }
 }

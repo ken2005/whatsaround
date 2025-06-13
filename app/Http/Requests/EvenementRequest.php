@@ -35,6 +35,9 @@ class EvenementRequest extends FormRequest
             'diffusion' => 'required|integer|in:1,2,3',
             'categorie' => 'required|array',
             'categorie.*' => 'exists:categorie,id',
+            'editeur' => 'nullable|array',
+            'editeur.*' => 'exists:users,id',
+
             'annonciateur' => 'nullable|boolean',
             'max_participants' => 'nullable|integer|min:1'
         ];

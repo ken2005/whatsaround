@@ -28,6 +28,35 @@
                   </div>
 
                   <div class="form-group">
+                      <label for="categories">Créateurs</label>
+                      <!-- Container principal -->
+                        <div class="categories-container">
+                            <!-- Conteneur combiné pour la barre de recherche et la liste -->
+                            <div class="categories-wrapper">
+                                <!-- Barre de recherche intégrée -->
+                                <div class="search-container">
+                                    <input type="text" id="searchInput2" class="form-control" placeholder="Rechercher des utilisateurs...">
+                                </div>
+                                
+                                <!-- Liste de checkboxes -->
+                                <div class="checkbox-list">
+                                    @foreach($users as $user)
+                                    <div class="checkbox-item">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="editeurs_{{$user->id}}" name="editeur[]" value="{{$user->id}}" {{ is_array(old('user')) && in_array($user->id, old('user')) ? 'checked' : '' }}>
+                                            <span class="checkbox-text">{{$user->name}}</span>
+                                        </label>
+                                    </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                        @error('categorie')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
+                  </div>
+
+                  <div class="form-group">
                       <label for="categories">Catégories</label>
                       <!-- Container principal -->
                         <div class="categories-container">
@@ -161,6 +190,20 @@
 
           <script>
             document.getElementById('searchInput').addEventListener('keyup', function() {
+                let searchText = this.value.toLowerCase();
+                let checkboxItems = document.querySelectorAll('.checkbox-item');
+                
+                checkboxItems.forEach(item => {
+                    let label = item.querySelector('label').textContent.toLowerCase();
+                    if (label.includes(searchText)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+
+            document.getElementById('searchInput2').addEventListener('keyup', function() {
                 let searchText = this.value.toLowerCase();
                 let checkboxItems = document.querySelectorAll('.checkbox-item');
                 
